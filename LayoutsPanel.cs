@@ -90,6 +90,22 @@ namespace RealDrawings
       if (null != page_view)
       {
         var sn = page_view.RuntimeSerialNumber;
+        var found = false;
+        foreach (ListViewItem item in m_list.Items)
+        {
+          if ((uint)item.Tag == sn)
+          {
+            m_list.SelectedItems.Clear();
+            item.Selected = true;
+            found = true;
+            break;
+          }
+        }
+
+        if (!found)
+        {
+          FillList();
+        }
 
         foreach (ListViewItem item in m_list.Items)
         {
@@ -133,7 +149,11 @@ namespace RealDrawings
           var arr = new string[3];
           arr[0] = view.PageName;
           arr[1] = string.Format("{0} x {1}", view.PageWidth, view.PageHeight);
-          arr[2] = view.GetDetailViews().Length.ToString();
+          var count = 0;
+          var details = view.GetDetailViews();
+          if (null != details)
+            count = view.GetDetailViews().Length;
+          arr[2] = count.ToString();
           var item = new ListViewItem(arr)
           {
             Tag = view.RuntimeSerialNumber,
@@ -201,7 +221,8 @@ namespace RealDrawings
 
     private void OnCopyButtonClick(object sender, EventArgs e)
     {
-
+      RhinoApp.RunScript("_CopyLayout", false);
+      FillList();
     }
 
     private void OnNewButtonClick(object sender, EventArgs e)
@@ -328,8 +349,59 @@ namespace RealDrawings
         {
         }
       }
-      catch 
+      catch
       {
+      }
+    }
+
+    private void m_list_BeforeLabelEdit(object sender, LabelEditEventArgs e)
+    {
+
+    }
+
+    private void m_list_AfterLabelEdit(object sender, LabelEditEventArgs e)
+    {
+      if (string.IsNullOrEmpty(e.Label))
+      {
+        e.CancelEdit = true;
+        return;
+      }
+
+      var label = e.Label.Trim();
+      if (string.IsNullOrEmpty(label))
+      {
+        e.CancelEdit = true;
+        return;
+      }
+
+      if (!Rhino.DocObjects.Layer.IsValidName(label))
+      {
+        e.CancelEdit = true;
+        return;
+      }
+
+      var doc = RhinoDoc.ActiveDoc;
+      if (null == doc)
+      {
+        e.CancelEdit = true;
+        return;
+      }
+
+      var index = e.Item;
+      var item = m_list.Items[index];
+      if (null != item)
+      {
+        var sn = (uint)item.Tag;
+        foreach (var view in doc.Views.GetPageViews())
+        {
+          if (view.RuntimeSerialNumber == sn)
+          {
+            view.PageName = label;
+            doc.Views.Redraw();
+            break;
+          }
+        }
+
       }
     }
   }

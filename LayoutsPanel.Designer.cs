@@ -60,6 +60,7 @@
             this.m_col_category});
       this.m_list.FullRowSelect = true;
       this.m_list.HideSelection = false;
+      this.m_list.LabelEdit = true;
       this.m_list.Location = new System.Drawing.Point(4, 35);
       this.m_list.MultiSelect = false;
       this.m_list.Name = "m_list";
@@ -67,6 +68,8 @@
       this.m_list.TabIndex = 1;
       this.m_list.UseCompatibleStateImageBehavior = false;
       this.m_list.View = System.Windows.Forms.View.Details;
+      this.m_list.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.m_list_AfterLabelEdit);
+      this.m_list.BeforeLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.m_list_BeforeLabelEdit);
       this.m_list.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.OnListMouseDoubleClick);
       // 
       // m_col_name
