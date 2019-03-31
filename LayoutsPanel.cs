@@ -202,6 +202,26 @@ namespace RealDrawings
 
     public string HelpUrl => "https://github.com/dalefugier/RealDrawings";
 
+    private bool SetActiveLayout(uint layout_sn)
+    {
+      var rc = false;
+      var doc = RhinoDoc.ActiveDoc;
+      if (null == doc)
+        return false;
+
+      foreach (var view in doc.Views.GetPageViews())
+      {
+        if (view.RuntimeSerialNumber == layout_sn)
+        {
+          doc.Views.ActiveView = view;
+          doc.Views.Redraw();
+          rc = true;
+          break;
+        }
+      }
+      return rc;
+    }
+
     private void OnListMouseDoubleClick(object sender, MouseEventArgs e)
     {
       var doc = RhinoDoc.ActiveDoc;
@@ -211,24 +231,21 @@ namespace RealDrawings
       ListViewHitTestInfo info = ((ListView)sender).HitTest(e.X, e.Y);
       var item = info.Item;
       if (null != item)
-      {
-        var sn = (uint)item.Tag;
-        foreach (var view in doc.Views.GetPageViews())
-        {
-          if (view.RuntimeSerialNumber == sn)
-          {
-            doc.Views.ActiveView = view;
-            doc.Views.Redraw();
-            break;
-          }
-        }
-      }
+        SetActiveLayout((uint)item.Tag);
     }
 
     private void OnCopyButtonClick(object sender, EventArgs e)
     {
-      RhinoApp.RunScript("_CopyLayout", false);
-      FillList();
+      ListViewItem selected = m_list.SelectedItems[0];
+      if (null != selected)
+      {
+        SetActiveLayout((uint)selected.Tag);
+        RhinoApp.RunScript("_CopyLayout", false);
+        FillList();
+      }
+
+      //RhinoApp.RunScript("_CopyLayout", false);
+      //FillList();
     }
 
     private void OnNewButtonClick(object sender, EventArgs e)
@@ -239,38 +256,53 @@ namespace RealDrawings
 
     private void OnButtonPropsClick(object sender, EventArgs e)
     {
-      var doc = RhinoDoc.ActiveDoc;
-      if (null == doc)
-        return;
+      ListViewItem selected = m_list.SelectedItems[0];
+      if (null != selected)
+      {
+        SetActiveLayout((uint)selected.Tag);
+        RhinoApp.RunScript("_LayoutProperties", false);
+        FillList();
+      }
+      //var doc = RhinoDoc.ActiveDoc;
+      //if (null == doc)
+      //  return;
 
-      var view = doc.Views.ActiveView;
-      if (null == view)
-        return;
+      //var view = doc.Views.ActiveView;
+      //if (null == view)
+      //  return;
 
-      var page_view = view as RhinoPageView;
-      if (null == page_view)
-        return;
+      //var page_view = view as RhinoPageView;
+      //if (null == page_view)
+      //  return;
 
-      RhinoApp.RunScript("_LayoutProperties", false);
-      FillList();
+      //RhinoApp.RunScript("_LayoutProperties", false);
+      //FillList();
     }
 
     private void OnButtonDeleteClick(object sender, EventArgs e)
     {
-      var doc = RhinoDoc.ActiveDoc;
-      if (null == doc)
-        return;
+      ListViewItem selected = m_list.SelectedItems[0];
+      if (null != selected)
+      {
+        SetActiveLayout((uint)selected.Tag);
+        RhinoApp.RunScript("_CloseViewport", false);
+        FillList();
+      }
 
-      var view = doc.Views.ActiveView;
-      if (null == view)
-        return;
+      //var doc = RhinoDoc.ActiveDoc;
+      //if (null == doc)
+      //  return;
 
-      var page_view = view as RhinoPageView;
-      if (null == page_view)
-        return;
+      //var view = doc.Views.ActiveView;
+      //if (null == view)
+      //  return;
 
-      RhinoApp.RunScript("_CloseViewport", false);
-      FillList();
+      //var page_view = view as RhinoPageView;
+      //if (null == page_view)
+      //  return;
+
+      //RhinoApp.RunScript("_CloseViewport", false);
+      //FillList();
     }
 
     private void ShuffleLayoutTabs()
