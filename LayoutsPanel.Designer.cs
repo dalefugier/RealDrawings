@@ -38,6 +38,7 @@
       this.m_btn_props = new System.Windows.Forms.Button();
       this.m_btn_up = new System.Windows.Forms.Button();
       this.m_btn_down = new System.Windows.Forms.Button();
+      this.m_text = new System.Windows.Forms.TextBox();
       this.SuspendLayout();
       // 
       // m_btn_new
@@ -61,10 +62,10 @@
       this.m_list.FullRowSelect = true;
       this.m_list.HideSelection = false;
       this.m_list.LabelEdit = true;
-      this.m_list.Location = new System.Drawing.Point(4, 35);
+      this.m_list.Location = new System.Drawing.Point(4, 56);
       this.m_list.MultiSelect = false;
       this.m_list.Name = "m_list";
-      this.m_list.Size = new System.Drawing.Size(203, 254);
+      this.m_list.Size = new System.Drawing.Size(203, 233);
       this.m_list.TabIndex = 1;
       this.m_list.UseCompatibleStateImageBehavior = false;
       this.m_list.View = System.Windows.Forms.View.Details;
@@ -133,10 +134,21 @@
       this.m_btn_down.UseVisualStyleBackColor = true;
       this.m_btn_down.Click += new System.EventHandler(this.OnButtonDownClick);
       // 
+      // m_text
+      // 
+      this.m_text.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+      this.m_text.Location = new System.Drawing.Point(4, 30);
+      this.m_text.Name = "m_text";
+      this.m_text.Size = new System.Drawing.Size(203, 20);
+      this.m_text.TabIndex = 7;
+      this.m_text.TextChanged += new System.EventHandler(this.m_text_TextChanged);
+      // 
       // LayoutsPanel
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+      this.Controls.Add(this.m_text);
       this.Controls.Add(this.m_btn_down);
       this.Controls.Add(this.m_btn_up);
       this.Controls.Add(this.m_btn_props);
@@ -147,6 +159,7 @@
       this.Name = "LayoutsPanel";
       this.Size = new System.Drawing.Size(210, 292);
       this.ResumeLayout(false);
+      this.PerformLayout();
 
     }
 
@@ -162,5 +175,6 @@
     private System.Windows.Forms.Button m_btn_props;
     private System.Windows.Forms.Button m_btn_up;
     private System.Windows.Forms.Button m_btn_down;
+    private System.Windows.Forms.TextBox m_text;
   }
 }

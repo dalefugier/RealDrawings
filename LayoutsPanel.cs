@@ -468,6 +468,44 @@ namespace RealDrawings
       // Perform the sort with these new sort options.
       m_list.Sort();
     }
+
+    private void m_text_TextChanged(object sender, EventArgs e)
+    {
+      var doc = RhinoDoc.ActiveDoc;
+      if (null == doc)
+        return;
+
+      var views = doc.Views.GetPageViews();
+      if (null == views || views.Length == 0)
+        return;
+
+      var text = m_text.Text.Trim();
+      if (string.IsNullOrEmpty(text))
+      {
+        FillList();
+        return;
+      }
+
+      m_list.Items.Clear();
+
+      foreach (var view in views.Where(v => v.PageName.ToLower().Contains(text.ToLower())))
+      {
+        var arr = new string[3];
+        arr[0] = view.PageName;
+        arr[1] = string.Format("{0} x {1}", view.PageWidth, view.PageHeight);
+        var count = 0;
+        var details = view.GetDetailViews();
+        if (null != details)
+          count = view.GetDetailViews().Length;
+        arr[2] = count.ToString();
+        var item = new ListViewItem(arr)
+        {
+          Tag = view.RuntimeSerialNumber,
+          ImageIndex = 0
+        };
+        m_list.Items.Add(item);
+      }
+    }
   }
 
   public class ListViewColumnSorter : IComparer
