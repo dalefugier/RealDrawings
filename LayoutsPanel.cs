@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Data;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Rhino;
 using Rhino.UI;
@@ -392,12 +386,11 @@ namespace RealDrawings
       }
     }
 
-    private void m_list_BeforeLabelEdit(object sender, LabelEditEventArgs e)
+    private void OnBeforeListViewLabelEdit(object sender, LabelEditEventArgs e)
     {
-
     }
 
-    private void m_list_AfterLabelEdit(object sender, LabelEditEventArgs e)
+    private void OnAfterListViewLabelEdit(object sender, LabelEditEventArgs e)
     {
       if (string.IsNullOrEmpty(e.Label))
       {
@@ -443,7 +436,7 @@ namespace RealDrawings
       }
     }
 
-    private void m_list_ColumnClick(object sender, ColumnClickEventArgs e)
+    private void OnListViewColumnClick(object sender, ColumnClickEventArgs e)
     {
       // Determine if clicked column is already the column that is being sorted.
       if (e.Column == lvwColumnSorter.SortColumn)
@@ -469,7 +462,7 @@ namespace RealDrawings
       m_list.Sort();
     }
 
-    private void m_text_TextChanged(object sender, EventArgs e)
+    private void OnTextBoxTextChanged(object sender, EventArgs e)
     {
       var doc = RhinoDoc.ActiveDoc;
       if (null == doc)

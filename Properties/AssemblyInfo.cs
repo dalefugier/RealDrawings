@@ -1,22 +1,21 @@
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Rhino.PlugIns;
 
 // Plug-in Description Attributes - all of these are optional.
 // These will show in Rhino's option dialog, in the tab Plug-ins.
 [assembly: PlugInDescription(DescriptionType.Address, "-")]
-[assembly: PlugInDescription(DescriptionType.Country, "-")]
-[assembly: PlugInDescription(DescriptionType.Email, "-")]
+[assembly: PlugInDescription(DescriptionType.Country, "United States")]
+[assembly: PlugInDescription(DescriptionType.Email, "dale@mcneel.com")]
 [assembly: PlugInDescription(DescriptionType.Phone, "-")]
 [assembly: PlugInDescription(DescriptionType.Fax, "-")]
-[assembly: PlugInDescription(DescriptionType.Organization, "-")]
-[assembly: PlugInDescription(DescriptionType.UpdateUrl, "-")]
-[assembly: PlugInDescription(DescriptionType.WebSite, "-")]
+[assembly: PlugInDescription(DescriptionType.Organization, "Team LayoutHawk")]
+[assembly: PlugInDescription(DescriptionType.UpdateUrl, "https://github.com/dalefugier/RealDrawings")]
+[assembly: PlugInDescription(DescriptionType.WebSite, "https://github.com/dalefugier/RealDrawings")]
 
 // Icons should be Windows .ico files and contain 32-bit images in the following sizes: 16, 24, 32, 48, and 256.
 // This is a Rhino 6-only description.
-[assembly: PlugInDescription(DescriptionType.Icon, "RealDrawings.Resources.plugin-utility.ico")]
+[assembly: PlugInDescription(DescriptionType.Icon, "RealDrawings.Resources.Panel.ico")]
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
@@ -24,12 +23,11 @@ using Rhino.PlugIns;
 [assembly: AssemblyTitle("RealDrawings")]
 
 // This will be used also for the plug-in description.
-[assembly: AssemblyDescription("RealDrawings utility plug-in")]
-
+[assembly: AssemblyDescription("AEC Tech 2019 West Coast Hackathon Project")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Team LayoutHawk")]
 [assembly: AssemblyProduct("RealDrawings")]
-[assembly: AssemblyCopyright("Copyright ©  2019")]
+[assembly: AssemblyCopyright("Copyright © 2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -52,8 +50,8 @@ using Rhino.PlugIns;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.*")]
+//[assembly: AssemblyFileVersion("1.0.0.0")]
 
 // Make compatible with Rhino Installer Engine
-[assembly: AssemblyInformationalVersion("2")]
+//[assembly: AssemblyInformationalVersion("2")]

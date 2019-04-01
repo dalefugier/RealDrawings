@@ -69,9 +69,9 @@
       this.m_list.TabIndex = 1;
       this.m_list.UseCompatibleStateImageBehavior = false;
       this.m_list.View = System.Windows.Forms.View.Details;
-      this.m_list.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.m_list_AfterLabelEdit);
-      this.m_list.BeforeLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.m_list_BeforeLabelEdit);
-      this.m_list.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.m_list_ColumnClick);
+      this.m_list.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.OnAfterListViewLabelEdit);
+      this.m_list.BeforeLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.OnBeforeListViewLabelEdit);
+      this.m_list.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.OnListViewColumnClick);
       this.m_list.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.OnListMouseDoubleClick);
       // 
       // m_col_name
@@ -142,7 +142,7 @@
       this.m_text.Name = "m_text";
       this.m_text.Size = new System.Drawing.Size(203, 20);
       this.m_text.TabIndex = 7;
-      this.m_text.TextChanged += new System.EventHandler(this.m_text_TextChanged);
+      this.m_text.TextChanged += new System.EventHandler(this.OnTextBoxTextChanged);
       // 
       // LayoutsPanel
       // 
