@@ -26,7 +26,7 @@ Once you start creating multiple layouts, the tab control becomes unusable, as t
 
 ##### Solution
 
-The team's solution was to developer a new `Layouts` panel. This panel would show all layouts in a easy-to-use list. Double-clicking on layout items in the list would activate the layout, thus eliminating the need for the layout tabs. The panel would also provide additional functionality, such as creating new layouts, copying existing layouts, renaming layouts, deleting layouts, and more.
+The team's solution was to developer a new `Layouts` panel. This panel shows all layouts in a easy-to-use list. Double-clicking on a layout item in the list activates the layout, thus completely eliminating the need for the layout tabs. The panel also provide additional functionality, such as creating new layouts, copying existing layouts, renaming layouts, deleting layouts, and more.
 
 ### License
 
