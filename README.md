@@ -10,7 +10,7 @@
 
 [James Munns](mailto:jmunns@structurecraft.com> ), [StructureCraft](https://structurecraft.com/)
 
-[Dale Fugier](mailto: <dale@mcneel.com), [Robert McNeel & Associates](https://www.rhino3d.com/)
+[Dale Fugier](mailto:<dale@mcneel.com), [Robert McNeel & Associates](https://www.rhino3d.com/)
 
 [Mary Fugier](mailto:mary@mcneel.com), [Robert McNeel & Associates](https://www.rhino3d.com/)
 
