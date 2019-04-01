@@ -18,7 +18,7 @@
 
 #### LayoutHawk
 
-The initial tools works to solve the problem of Rhino's layout tabs. Layout tabs appear below Rhino's graphics area.
+The initial tool attempts to solve the problem of Rhino's layout tabs. Layout tabs appear below Rhino's graphics area.
 
 ##### Problem
 
