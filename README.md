@@ -7,13 +7,16 @@
 ### Team Members
 
 [Daniel Depoe](mailto:daniel.depoe@katerra.com), [Katerra](https://katerra.com/)
+
 [James Munns](mailto:jmunns@structurecraft.com> ), [StructureCraft](https://structurecraft.com/)
+
 [Dale Fugier](mailto: <dale@mcneel.com), [Robert McNeel & Associates](https://www.rhino3d.com/)
+
 [Mary Fugier](mailto:mary@mcneel.com), [Robert McNeel & Associates](https://www.rhino3d.com/)
 
 ### Tools
 
-#### LayoutHawks
+#### LayoutHawk
 
 The initial tools works to solve the problem of Rhino's layout tabs. Layout tabs appear below Rhino's graphics area.
 
