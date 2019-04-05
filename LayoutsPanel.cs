@@ -5,6 +5,8 @@ using Rhino;
 using Rhino.UI;
 using Rhino.Display;
 using System.Collections;
+using System.Drawing;
+using System.Runtime.InteropServices;
 
 namespace RealDrawings
 {
@@ -13,58 +15,80 @@ namespace RealDrawings
   {
     public static Guid PanelId => typeof(LayoutsPanel).GUID;
 
-    ToolTip m_tt_new = new ToolTip();
-    ToolTip m_tt_copy = new ToolTip();
-    ToolTip m_tt_delete = new ToolTip();
-    ToolTip m_tt_props = new ToolTip();
-    ToolTip m_tt_up = new ToolTip();
-    ToolTip m_tt_down = new ToolTip();
+    private readonly ListViewItemSorter m_item_sorter;
+    private readonly System.Drawing.Font m_font_regular;
+    private readonly System.Drawing.Font m_font_bold;
+    private bool m_events_hooked;
 
-    private ListViewColumnSorter lvwColumnSorter;
-
+    /// <summary>
+    /// Public constructor
+    /// </summary>
     public LayoutsPanel()
     {
       InitializeComponent();
 
       var icon_size = SystemInformation.SmallIconSize.Width;
-      m_btn_new.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.New.ico", 24);
-      m_btn_copy.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Copy.ico", 24);
-      m_btn_delete.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Delete.ico", 24);
-      m_btn_props.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Props.ico", 24);
-      m_btn_up.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Up.ico", 24);
-      m_btn_down.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Down.ico", 24);
+      m_button_new.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.New.ico", icon_size);
+      m_button_copy.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Copy.ico", icon_size);
+      m_button_delete.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Delete.ico", icon_size);
+      m_button_props.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Props.ico", icon_size);
 
-      RhinoDoc.EndOpenDocument += OnEndOpenDocument;
-      RhinoView.Create += OnCreateViewEventHandler;
-      RhinoView.Rename += OnRenameViewEventHandler;
-      RhinoView.SetActive += OnSetActiveViewEventHandler;
-      RhinoView.Destroy += OnDestroyViewEventHandler;
+      var image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Panel.ico", icon_size);
+      var image_list = new ImageList();
+      image_list.Images.Add("main", image);
+      m_list.SmallImageList = image_list;
 
-      m_tt_new.SetToolTip(m_btn_new, "New");
-      m_tt_copy.SetToolTip(m_btn_copy, "Copy");
-      m_tt_delete.SetToolTip(m_btn_delete, "Delete");
-      m_tt_props.SetToolTip(m_btn_props, "Properties");
-      m_tt_up.SetToolTip(m_btn_up, "Move Up");
-      m_tt_down.SetToolTip(m_btn_down, "Move Down");
+      m_item_sorter = new ListViewItemSorter();
+      m_list.ListViewItemSorter = m_item_sorter;
 
-      var image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Panel.ico", 16);
-      var imageList = new ImageList();
-      imageList.Images.Add("main", image);
-      m_list.SmallImageList = imageList;
+      m_font_regular = new Font(m_list.Font, FontStyle.Regular);
+      m_font_bold = new Font(m_list.Font, FontStyle.Bold);
 
-      lvwColumnSorter = new ListViewColumnSorter();
-      m_list.ListViewItemSorter = lvwColumnSorter;
+      SendMessage(m_text.Handle, EM_SETCUEBANNER, 1, "Search");
 
-      FillList();
+      FillListView();
+      SetButtonsEnabled(0);
+      HookRhinoEvents();
     }
 
+    /// <summary>
+    /// Hook up some Rhino event handlers
+    /// </summary>
+    public void HookRhinoEvents()
+    {
+      if (!m_events_hooked)
+      {
+        RhinoDoc.EndOpenDocument += OnEndOpenDocument;
+        RhinoView.Create += OnCreateViewEventHandler;
+        RhinoView.Rename += OnRenameViewEventHandler;
+        RhinoView.SetActive += OnSetActiveViewEventHandler;
+        RhinoView.Destroy += OnDestroyViewEventHandler;
+        m_events_hooked = true;
+      }
+    }
+
+    /// <summary>
+    /// Unhook up some Rhino event handlers
+    /// </summary>
+    public void UnhookRhinoEvents()
+    {
+      if (m_events_hooked)
+      {
+        RhinoDoc.EndOpenDocument -= OnEndOpenDocument;
+        RhinoView.Create -= OnCreateViewEventHandler;
+        RhinoView.Rename -= OnRenameViewEventHandler;
+        RhinoView.SetActive -= OnSetActiveViewEventHandler;
+        RhinoView.Destroy -= OnDestroyViewEventHandler;
+        m_events_hooked = false;
+      }
+    }
 
     /// <summary>
     /// A view was created
     /// </summary>
     private void OnCreateViewEventHandler(object sender, ViewEventArgs e)
     {
-      FillList();
+      FillListView();
     }
 
     /// <summary>
@@ -72,7 +96,7 @@ namespace RealDrawings
     /// </summary>
     private void OnRenameViewEventHandler(object sender, ViewEventArgs e)
     {
-      FillList();
+      FillListView();
     }
 
     /// <summary>
@@ -80,14 +104,12 @@ namespace RealDrawings
     /// </summary>
     private void OnDestroyViewEventHandler(object sender, ViewEventArgs e)
     {
-      FillList();
+      FillListView();
     }
 
     private void OnSetActiveViewEventHandler(object sender, ViewEventArgs e)
     {
-      var view = e.View;
-      var page_view = view as RhinoPageView;
-      if (null != page_view)
+      if (e.View is RhinoPageView page_view)
       {
         var sn = page_view.RuntimeSerialNumber;
         var found = false;
@@ -97,14 +119,19 @@ namespace RealDrawings
           {
             m_list.SelectedItems.Clear();
             item.Selected = true;
+            item.Font = m_font_bold;
             found = true;
-            break;
+            //break;
+          }
+          else
+          {
+            item.Font = m_font_regular;
           }
         }
 
         if (!found)
         {
-          FillList();
+          FillListView();
         }
 
         foreach (ListViewItem item in m_list.Items)
@@ -121,102 +148,148 @@ namespace RealDrawings
 
     private void OnIdle(object sender, EventArgs e)
     {
-      FillList();
       RhinoApp.Idle -= OnIdle;
+      FillListView();
+      ResizeViewListColumns();
     }
 
     private void OnEndOpenDocument(object sender, DocumentOpenEventArgs e)
     {
-      //FillList();
       RhinoApp.Idle += OnIdle;
     }
 
-    void FillList()
+    /// <summary>
+    /// FillListview
+    /// </summary>
+    void FillListView()
     {
+      var sizes = new int[m_list.Columns.Count];
+      for (var i = 0; i < m_list.Columns.Count; i++)
+        sizes[i] = m_list.Columns[i].Width;
+
       m_list.BeginUpdate();
 
       m_list.Items.Clear();
 
       var doc = RhinoDoc.ActiveDoc;
-      if (null == doc)
-        return;
-
-      try
+      if (null != doc)
       {
-        var page_views = doc.Views.GetPageViews();
-        foreach (var view in page_views)
+        try
         {
-          var arr = new string[3];
-          arr[0] = view.PageName;
-          arr[1] = string.Format("{0} x {1}", view.PageWidth, view.PageHeight);
-          var count = 0;
-          var details = view.GetDetailViews();
-          if (null != details)
-            count = view.GetDetailViews().Length;
-          arr[2] = count.ToString();
-          var item = new ListViewItem(arr)
+          var view_sn = ActiveLayout;
+          var page_views = doc.Views.GetPageViews();
+          foreach (var view in page_views)
           {
-            Tag = view.RuntimeSerialNumber,
-            ImageIndex = 0
-          };
-          m_list.Items.Add(item);
+            var arr = new string[3];
+            arr[0] = view.PageName;
+            arr[1] = $"{view.PageWidth} x {view.PageHeight}";
+
+            var count = 0;
+            var details = view.GetDetailViews();
+            if (null != details)
+              count = view.GetDetailViews().Length;
+            arr[2] = count.ToString();
+
+            var item = new ListViewItem(arr)
+            {
+              Tag = view.RuntimeSerialNumber,
+              ImageIndex = 0
+            };
+
+            if (view.RuntimeSerialNumber == view_sn)
+              item.Font = m_font_bold;
+
+            m_list.Items.Add(item);
+          }
+        }
+        catch
+        {
+          // Do nothing
         }
       }
-      catch
-      {
-        // Do nothing
-      }
 
-      foreach (ColumnHeader column in m_list.Columns)
-      {
-        column.Width = -2;
-      }
+      for (var i = 0; i < m_list.Columns.Count; i++)
+        m_list.Columns[i].Width = sizes[i];
 
       m_list.EndUpdate();
     }
 
+    void ResizeViewListColumns()
+    {
+      foreach (ColumnHeader column in m_list.Columns)
+        column.Width = -2;
+    }
+
     #region IPanel interface
 
+    /// <summary>
+    /// The panel is being closed
+    /// </summary>
     public void PanelClosing(uint documentSerialNumber, bool onCloseDocument)
     {
-      //throw new NotImplementedException();
+      UnhookRhinoEvents();
     }
 
+    /// <summary>
+    /// The panel is being hidden
+    /// </summary>
     public void PanelHidden(uint documentSerialNumber, ShowPanelReason reason)
     {
-      //throw new NotImplementedException();
+      UnhookRhinoEvents();
     }
 
+    /// <summary>
+    /// The panel is being shown
+    /// </summary>
     public void PanelShown(uint documentSerialNumber, ShowPanelReason reason)
     {
-      FillList();
+      FillListView();
+      HookRhinoEvents();
     }
 
     #endregion
 
     public string HelpUrl => "https://github.com/dalefugier/RealDrawings";
 
-    private bool SetActiveLayout(uint layout_sn)
+    /// <summary>
+    /// Gets the runtime serial number of the active page view
+    /// </summary>
+    private uint ActiveLayout
     {
-      var rc = false;
-      var doc = RhinoDoc.ActiveDoc;
-      if (null == doc)
-        return false;
-
-      foreach (var view in doc.Views.GetPageViews())
+      get
       {
-        if (view.RuntimeSerialNumber == layout_sn)
+        var doc = RhinoDoc.ActiveDoc;
+        var view = doc?.Views.ActiveView;
+        if (view != null)
         {
-          doc.Views.ActiveView = view;
-          doc.Views.Redraw();
-          rc = true;
-          break;
+          if (view is RhinoPageView page_view)
+            return page_view.RuntimeSerialNumber;
         }
+        return 0;
       }
-      return rc;
     }
 
-    private void OnListMouseDoubleClick(object sender, MouseEventArgs e)
+    /// <summary>
+    /// Sets the active page view, given a runtime serial number
+    /// </summary>
+    private void SetActiveLayout(uint runtimeSerialNumber)
+    {
+      var doc = RhinoDoc.ActiveDoc;
+      if (null != doc)
+      {
+        foreach (var view in doc.Views.GetPageViews())
+        {
+          if (view.RuntimeSerialNumber == runtimeSerialNumber)
+          {
+            doc.Views.ActiveView = view;
+            doc.Views.Redraw();
+            break;
+          }
+        }
+      }
+    }
+
+    private void OnListViewMouseDoubleClick(object sender, MouseEventArgs e)
     {
       var doc = RhinoDoc.ActiveDoc;
       if (null == doc)
@@ -228,169 +301,11 @@ namespace RealDrawings
         SetActiveLayout((uint)item.Tag);
     }
 
-    private void OnCopyButtonClick(object sender, EventArgs e)
-    {
-      ListViewItem selected = m_list.SelectedItems[0];
-      if (null != selected)
-      {
-        SetActiveLayout((uint)selected.Tag);
-        RhinoApp.RunScript("_CopyLayout", false);
-        FillList();
-      }
-
-      //RhinoApp.RunScript("_CopyLayout", false);
-      //FillList();
-    }
-
-    private void OnNewButtonClick(object sender, EventArgs e)
-    {
-      RhinoApp.RunScript("_Layout", false);
-      FillList();
-    }
-
-    private void OnButtonPropsClick(object sender, EventArgs e)
-    {
-      ListViewItem selected = m_list.SelectedItems[0];
-      if (null != selected)
-      {
-        SetActiveLayout((uint)selected.Tag);
-        RhinoApp.RunScript("_LayoutProperties", false);
-        FillList();
-      }
-      //var doc = RhinoDoc.ActiveDoc;
-      //if (null == doc)
-      //  return;
-
-      //var view = doc.Views.ActiveView;
-      //if (null == view)
-      //  return;
-
-      //var page_view = view as RhinoPageView;
-      //if (null == page_view)
-      //  return;
-
-      //RhinoApp.RunScript("_LayoutProperties", false);
-      //FillList();
-    }
-
-    private void OnButtonDeleteClick(object sender, EventArgs e)
-    {
-      ListViewItem selected = m_list.SelectedItems[0];
-      if (null != selected)
-      {
-        SetActiveLayout((uint)selected.Tag);
-        RhinoApp.RunScript("_CloseViewport", false);
-        FillList();
-      }
-
-      //var doc = RhinoDoc.ActiveDoc;
-      //if (null == doc)
-      //  return;
-
-      //var view = doc.Views.ActiveView;
-      //if (null == view)
-      //  return;
-
-      //var page_view = view as RhinoPageView;
-      //if (null == page_view)
-      //  return;
-
-      //RhinoApp.RunScript("_CloseViewport", false);
-      //FillList();
-    }
-
-    private void ShuffleLayoutTabs()
-    {
-      //var doc = RhinoDoc.ActiveDoc;
-      //if (null == doc)
-      //  return;
-
-      //var i = 0;
-      //foreach (ListViewItem item in m_list.Items)
-      //{
-      //  var sn = (uint)item.Tag;
-      //  foreach (var view in doc.Views.GetPageViews())
-      //  {
-      //    if (view.RuntimeSerialNumber == sn)
-      //    {
-      //      view.PageNumber = i++;
-      //      break;
-      //    }
-      //  }
-      //}
-
-      //doc.Views.Redraw();
-      //RhinoApp.RunScript("_-ViewportTabs _Hide", false);
-      //RhinoApp.RunScript("_-ViewportTabs _Show", false);
-    }
-
-    private void OnButtonUpClick(object sender, EventArgs e)
-    {
-      try
-      {
-        if (m_list.SelectedItems.Count > 0)
-        {
-          ListViewItem selected = m_list.SelectedItems[0];
-          int indx = selected.Index;
-          int totl = m_list.Items.Count;
-
-          if (indx == 0)
-          {
-            m_list.Items.Remove(selected);
-            m_list.Items.Insert(totl - 1, selected);
-          }
-          else
-          {
-            m_list.Items.Remove(selected);
-            m_list.Items.Insert(indx - 1, selected);
-          }
-          ShuffleLayoutTabs();
-        }
-        else
-        {
-        }
-      }
-      catch
-      {
-      }
-    }
-
-    private void OnButtonDownClick(object sender, EventArgs e)
-    {
-      try
-      {
-        if (m_list.SelectedItems.Count > 0)
-        {
-          ListViewItem selected = m_list.SelectedItems[0];
-          int indx = selected.Index;
-          int totl = m_list.Items.Count;
-
-          if (indx == totl - 1)
-          {
-            m_list.Items.Remove(selected);
-            m_list.Items.Insert(0, selected);
-          }
-          else
-          {
-            m_list.Items.Remove(selected);
-            m_list.Items.Insert(indx + 1, selected);
-          }
-          ShuffleLayoutTabs();
-        }
-        else
-        {
-        }
-      }
-      catch
-      {
-      }
-    }
-
-    private void OnBeforeListViewLabelEdit(object sender, LabelEditEventArgs e)
+    private void OnListViewBeforeLabelEdit(object sender, LabelEditEventArgs e)
     {
     }
 
-    private void OnAfterListViewLabelEdit(object sender, LabelEditEventArgs e)
+    private void OnListViewAfterLabelEdit(object sender, LabelEditEventArgs e)
     {
       if (string.IsNullOrEmpty(e.Label))
       {
@@ -436,26 +351,53 @@ namespace RealDrawings
       }
     }
 
+    private void OnListViewSelectedIndexChanged(object sender, EventArgs e)
+    {
+      SetButtonsEnabled(m_list.SelectedItems.Count);
+    }
+
+    private void SetButtonsEnabled(int selectedCount)
+    {
+      if (0 == selectedCount)
+      {
+        m_button_copy.Enabled = false;
+        m_button_delete.Enabled = false;
+        m_button_props.Enabled = false;
+      }
+      else if (1 == selectedCount)
+      {
+        m_button_copy.Enabled = true;
+        m_button_delete.Enabled = true;
+        m_button_props.Enabled = true;
+      }
+      else
+      {
+        m_button_copy.Enabled = false;
+        m_button_delete.Enabled = true;
+        m_button_props.Enabled = false;
+      }
+    }
+
     private void OnListViewColumnClick(object sender, ColumnClickEventArgs e)
     {
       // Determine if clicked column is already the column that is being sorted.
-      if (e.Column == lvwColumnSorter.SortColumn)
+      if (e.Column == m_item_sorter.SortColumn)
       {
         // Reverse the current sort direction for this column.
-        if (lvwColumnSorter.Order == SortOrder.Ascending)
+        if (m_item_sorter.Order == SortOrder.Ascending)
         {
-          lvwColumnSorter.Order = SortOrder.Descending;
+          m_item_sorter.Order = SortOrder.Descending;
         }
         else
         {
-          lvwColumnSorter.Order = SortOrder.Ascending;
+          m_item_sorter.Order = SortOrder.Ascending;
         }
       }
       else
       {
         // Set the column number that is to be sorted; default to ascending.
-        lvwColumnSorter.SortColumn = e.Column;
-        lvwColumnSorter.Order = SortOrder.Ascending;
+        m_item_sorter.SortColumn = e.Column;
+        m_item_sorter.Order = SortOrder.Ascending;
       }
 
       // Perform the sort with these new sort options.
@@ -465,17 +407,14 @@ namespace RealDrawings
     private void OnTextBoxTextChanged(object sender, EventArgs e)
     {
       var doc = RhinoDoc.ActiveDoc;
-      if (null == doc)
-        return;
-
-      var views = doc.Views.GetPageViews();
-      if (null == views || views.Length == 0)
+      var views = doc?.Views.GetPageViews();
+      if (views == null || views.Length == 0)
         return;
 
       var text = m_text.Text.Trim();
       if (string.IsNullOrEmpty(text))
       {
-        FillList();
+        FillListView();
         return;
       }
 
@@ -485,12 +424,14 @@ namespace RealDrawings
       {
         var arr = new string[3];
         arr[0] = view.PageName;
-        arr[1] = string.Format("{0} x {1}", view.PageWidth, view.PageHeight);
+        arr[1] = $"{view.PageWidth} x {view.PageHeight}";
+
         var count = 0;
         var details = view.GetDetailViews();
         if (null != details)
           count = view.GetDetailViews().Length;
         arr[2] = count.ToString();
+
         var item = new ListViewItem(arr)
         {
           Tag = view.RuntimeSerialNumber,
@@ -499,36 +440,115 @@ namespace RealDrawings
         m_list.Items.Add(item);
       }
     }
+
+    /// <summary>
+    /// OnButtonNewClick
+    /// </summary>
+    private void OnButtonNewClick(object sender, EventArgs e)
+    {
+      RhinoApp.RunScript("_Layout", false);
+      FillListView();
+    }
+
+    /// <summary>
+    /// OnButtonCopyClick
+    /// </summary>
+    private void OnButtonCopyClick(object sender, EventArgs e)
+    {
+      ListViewItem selected = m_list.SelectedItems[0];
+      if (null != selected)
+      {
+        SetActiveLayout((uint)selected.Tag);
+        RhinoApp.RunScript("_CopyLayout", false);
+        FillListView();
+      }
+
+    }
+
+    /// <summary>
+    /// OnButtonDeleteClick
+    /// </summary>
+    private void OnButtonDeleteClick(object sender, EventArgs e)
+    {
+      var count = m_list.SelectedItems.Count;
+      if (0 == count)
+        return;
+
+      var message = 1 == count
+        ? "Permanently deleted the selected layout?"
+        : "Permanently deleted the selected layouts?";
+
+      var title = 1 == count
+        ? "Delete Layout"
+        : "Delete Layouts";
+
+      var rc = Dialogs.ShowMessage(message, title, ShowMessageButton.YesNo, ShowMessageIcon.Warning);
+      if (rc == ShowMessageResult.No)
+        return;
+
+      var current_sn = ActiveLayout;
+
+      foreach (ListViewItem item in m_list.SelectedItems)
+      {
+        SetActiveLayout((uint)item.Tag);
+        RhinoApp.Wait();
+        RhinoApp.RunScript("_-CloseViewport _Yes", false);
+        RhinoApp.Wait();
+      }
+
+      FillListView();
+      SetActiveLayout(current_sn);
+    }
+
+    /// <summary>
+    /// OnButtonPropsClick
+    /// </summary>
+    private void OnButtonPropsClick(object sender, EventArgs e)
+    {
+      ListViewItem selected = m_list.SelectedItems[0];
+      if (null != selected)
+      {
+        SetActiveLayout((uint)selected.Tag);
+        RhinoApp.RunScript("_LayoutProperties", false);
+        FillListView();
+      }
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern int SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)]string lParam);
+    private const int EM_SETCUEBANNER = 0x1501;
+
+
   }
 
-  public class ListViewColumnSorter : IComparer
+  public class ListViewItemSorter : IComparer
   {
     /// <summary>
     /// Specifies the column to be sorted
     /// </summary>
-    private int ColumnToSort;
+    private int m_column_to_sort;
     /// <summary>
     /// Specifies the order in which to sort (i.e. 'Ascending').
     /// </summary>
-    private SortOrder OrderOfSort;
+    private SortOrder m_order_of_sort;
     /// <summary>
     /// Case insensitive comparer object
     /// </summary>
-    private CaseInsensitiveComparer ObjectCompare;
+    private CaseInsensitiveComparer m_object_compare;
 
     /// <summary>
     /// Class constructor.  Initializes various elements
     /// </summary>
-    public ListViewColumnSorter()
+    public ListViewItemSorter()
     {
       // Initialize the column to '0'
-      ColumnToSort = 0;
+      m_column_to_sort = 0;
 
       // Initialize the sort order to 'none'
-      OrderOfSort = SortOrder.None;
+      m_order_of_sort = SortOrder.None;
 
       // Initialize the CaseInsensitiveComparer object
-      ObjectCompare = new CaseInsensitiveComparer();
+      m_object_compare = new CaseInsensitiveComparer();
     }
 
     /// <summary>
@@ -547,15 +567,15 @@ namespace RealDrawings
       listviewY = (ListViewItem)y;
 
       // Compare the two items
-      compareResult = ObjectCompare.Compare(listviewX.SubItems[ColumnToSort].Text, listviewY.SubItems[ColumnToSort].Text);
+      compareResult = m_object_compare.Compare(listviewX.SubItems[m_column_to_sort].Text, listviewY.SubItems[m_column_to_sort].Text);
 
       // Calculate correct return value based on object comparison
-      if (OrderOfSort == SortOrder.Ascending)
+      if (m_order_of_sort == SortOrder.Ascending)
       {
         // Ascending sort is selected, return normal result of compare operation
         return compareResult;
       }
-      else if (OrderOfSort == SortOrder.Descending)
+      else if (m_order_of_sort == SortOrder.Descending)
       {
         // Descending sort is selected, return negative result of compare operation
         return (-compareResult);
@@ -574,11 +594,11 @@ namespace RealDrawings
     {
       set
       {
-        ColumnToSort = value;
+        m_column_to_sort = value;
       }
       get
       {
-        return ColumnToSort;
+        return m_column_to_sort;
       }
     }
 
@@ -589,11 +609,11 @@ namespace RealDrawings
     {
       set
       {
-        OrderOfSort = value;
+        m_order_of_sort = value;
       }
       get
       {
-        return OrderOfSort;
+        return m_order_of_sort;
       }
     }
   }
