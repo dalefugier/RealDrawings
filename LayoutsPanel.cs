@@ -5,20 +5,45 @@ using Rhino;
 using Rhino.UI;
 using Rhino.Display;
 using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace RealDrawings
 {
-  [System.Runtime.InteropServices.Guid("29C790A7-1AE9-4350-900F-40AA54EA5AA0")]
+  [Guid("29C790A7-1AE9-4350-900F-40AA54EA5AA0")]
   public partial class LayoutsPanel : UserControl, IPanel, IHelp
   {
     public static Guid PanelId => typeof(LayoutsPanel).GUID;
 
     private readonly ListViewItemSorter m_item_sorter;
-    private readonly System.Drawing.Font m_font_regular;
-    private readonly System.Drawing.Font m_font_bold;
+    private readonly Font m_font_regular;
+    private readonly Font m_font_bold;
     private bool m_events_hooked;
+
+    private enum LayoutEvent
+    {
+      /// <summary>
+      /// No panel activity in progress
+      /// </summary>
+      None,
+      /// <summary>
+      /// File opening in progress
+      /// </summary>
+      Open,
+      /// <summary>
+      /// New layout in progress
+      /// </summary>
+      New,
+      /// <summary>
+      /// Delete layout in progress
+      /// </summary>
+      Delete
+    }
+
+    private LayoutEvent m_current_event = LayoutEvent.None;
 
     /// <summary>
     /// Public constructor
@@ -26,28 +51,41 @@ namespace RealDrawings
     public LayoutsPanel()
     {
       InitializeComponent();
+      m_list.DoubleBuffered(true);
 
+      // Toolbar icons
       var icon_size = SystemInformation.SmallIconSize.Width;
       m_button_new.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.New.ico", icon_size);
       m_button_copy.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Copy.ico", icon_size);
       m_button_delete.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Delete.ico", icon_size);
       m_button_props.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Props.ico", icon_size);
+      m_button_help.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Help.ico", icon_size);
 
+      // ListView image
       var image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Panel.ico", icon_size);
       var image_list = new ImageList();
-      image_list.Images.Add("main", image);
+      image_list.Images.Add("0", image);
       m_list.SmallImageList = image_list;
+      
 
+      // ListView item sorter
       m_item_sorter = new ListViewItemSorter();
       m_list.ListViewItemSorter = m_item_sorter;
 
+      // Regular and bold ListView font
       m_font_regular = new Font(m_list.Font, FontStyle.Regular);
       m_font_bold = new Font(m_list.Font, FontStyle.Bold);
 
+      // Sneaky way to add a cue banner to the text box
       SendMessage(m_text.Handle, EM_SETCUEBANNER, 1, "Search");
 
+      // Fill the ListView
       FillListView();
+
+      // Enable the toolbar buttons
       SetButtonsEnabled(0);
+
+      // Hook some Rhino events
       HookRhinoEvents();
     }
 
@@ -84,44 +122,66 @@ namespace RealDrawings
     }
 
     /// <summary>
-    /// A view was created
+    /// RhinoView.Create event handler
     /// </summary>
     private void OnCreateViewEventHandler(object sender, ViewEventArgs e)
     {
-      FillListView();
+      if (m_current_event == LayoutEvent.None)
+      {
+        if (e.View is RhinoPageView)
+          FillListView();
+      }
     }
 
     /// <summary>
-    /// A view was renamed
+    /// RhinoView.Rename event handler
     /// </summary>
     private void OnRenameViewEventHandler(object sender, ViewEventArgs e)
     {
-      FillListView();
+      if (m_current_event == LayoutEvent.None)
+      {
+        if (e.View is RhinoPageView)
+          FillListView();
+      }
     }
 
     /// <summary>
-    /// A view was destroyed
+    /// RhinoView.Destroy event handler
     /// </summary>
     private void OnDestroyViewEventHandler(object sender, ViewEventArgs e)
     {
-      FillListView();
+      if (m_current_event == LayoutEvent.None)
+      {
+        if (e.View is RhinoPageView)
+          FillListView();
+      }
     }
 
+    /// <summary>
+    /// RhinoView.SetActive event handler
+    /// </summary>
     private void OnSetActiveViewEventHandler(object sender, ViewEventArgs e)
     {
+      if (m_current_event != LayoutEvent.None)
+        return;
+
       if (e.View is RhinoPageView page_view)
       {
-        var sn = page_view.RuntimeSerialNumber;
-        var found = false;
+        var serial_number = page_view.RuntimeSerialNumber;
+
+        m_list.BeginUpdate();
+
+        m_list.SelectedItems.Clear();
+
+        var selected_index = -1;
+
         foreach (ListViewItem item in m_list.Items)
         {
-          if ((uint)item.Tag == sn)
+          if ((uint)item.Tag == serial_number)
           {
-            m_list.SelectedItems.Clear();
             item.Selected = true;
             item.Font = m_font_bold;
-            found = true;
-            //break;
+            selected_index = item.Index;
           }
           else
           {
@@ -129,95 +189,99 @@ namespace RealDrawings
           }
         }
 
-        if (!found)
-        {
-          FillListView();
-        }
+        if (selected_index >= 0)
+          m_list.EnsureVisible(selected_index);
 
-        foreach (ListViewItem item in m_list.Items)
-        {
-          if ((uint)item.Tag == sn)
-          {
-            m_list.SelectedItems.Clear();
-            item.Selected = true;
-            break;
-          }
-        }
+        m_list.EndUpdate();
       }
     }
 
-    private void OnIdle(object sender, EventArgs e)
-    {
-      RhinoApp.Idle -= OnIdle;
-      FillListView();
-      ResizeViewListColumns();
-    }
-
+    /// <summary>
+    /// RhinoDoc.EndOpenDocument event handler
+    /// </summary>
     private void OnEndOpenDocument(object sender, DocumentOpenEventArgs e)
     {
+      m_current_event = LayoutEvent.Open;
+      m_text.Text = "";
       RhinoApp.Idle += OnIdle;
+    }
+
+    /// <summary>
+    /// RhinoApp.Idle event handler
+    /// </summary>
+    private void OnIdle(object sender, EventArgs e)
+    {
+      m_current_event = LayoutEvent.None;
+      RhinoApp.Idle -= OnIdle;
+      FillListView();
     }
 
     /// <summary>
     /// FillListview
     /// </summary>
-    void FillListView()
+    private void FillListView()
     {
-      var sizes = new int[m_list.Columns.Count];
-      for (var i = 0; i < m_list.Columns.Count; i++)
-        sizes[i] = m_list.Columns[i].Width;
+      // Save the sizes of the columns
+      var column_sizes = new List<int>();
+      foreach (ColumnHeader column in m_list.Columns)
+        column_sizes.Add(column.Width);
 
+      var seleccted_index = -1;
+
+      // Here we go
       m_list.BeginUpdate();
 
+      // Clear the list
       m_list.Items.Clear();
 
       var doc = RhinoDoc.ActiveDoc;
       if (null != doc)
       {
-        try
+        var view_sn = ActiveLayout;
+        var page_views = doc.Views.GetPageViews();
+        foreach (var view in page_views)
         {
-          var view_sn = ActiveLayout;
-          var page_views = doc.Views.GetPageViews();
-          foreach (var view in page_views)
+          var arr = new string[3];
+          arr[0] = view.PageName;
+          arr[1] = $"{view.PageWidth} x {view.PageHeight}";
+
+          var count = 0;
+          var details = view.GetDetailViews();
+          if (null != details)
+            count = view.GetDetailViews().Length;
+          arr[2] = count.ToString();
+
+          var item = new ListViewItem(arr)
           {
-            var arr = new string[3];
-            arr[0] = view.PageName;
-            arr[1] = $"{view.PageWidth} x {view.PageHeight}";
+            Tag = view.RuntimeSerialNumber,
+            ImageIndex = 0
+          };
 
-            var count = 0;
-            var details = view.GetDetailViews();
-            if (null != details)
-              count = view.GetDetailViews().Length;
-            arr[2] = count.ToString();
-
-            var item = new ListViewItem(arr)
-            {
-              Tag = view.RuntimeSerialNumber,
-              ImageIndex = 0
-            };
-
-            if (view.RuntimeSerialNumber == view_sn)
-              item.Font = m_font_bold;
-
-            m_list.Items.Add(item);
+          // Is current page view?
+          if (view.RuntimeSerialNumber == view_sn)
+          {
+            item.Font = m_font_bold;
+            item.Selected = true;
           }
-        }
-        catch
-        {
-          // Do nothing
+
+          var new_item = m_list.Items.Add(item);
+
+          if (new_item.Selected)
+            seleccted_index = new_item.Index;
         }
       }
 
+      // Restore column widths
       for (var i = 0; i < m_list.Columns.Count; i++)
-        m_list.Columns[i].Width = sizes[i];
+        m_list.Columns[i].Width = column_sizes[i];
+      m_list.Columns[m_list.Columns.Count - 1].Width = -2;
+
+      m_list.Sort();
+
+      if (seleccted_index >= 0)
+        m_list.EnsureVisible(seleccted_index);
 
       m_list.EndUpdate();
-    }
-
-    void ResizeViewListColumns()
-    {
-      foreach (ColumnHeader column in m_list.Columns)
-        column.Width = -2;
     }
 
     #region IPanel interface
@@ -249,7 +313,11 @@ namespace RealDrawings
 
     #endregion
 
+    #region IHelp inteface
+
     public string HelpUrl => "https://github.com/dalefugier/RealDrawings";
+
+    #endregion
 
     /// <summary>
     /// Gets the runtime serial number of the active page view
@@ -289,22 +357,31 @@ namespace RealDrawings
       }
     }
 
+    /// <summary>
+    /// OnListViewMouseDoubleClick
+    /// </summary>
     private void OnListViewMouseDoubleClick(object sender, MouseEventArgs e)
     {
       var doc = RhinoDoc.ActiveDoc;
       if (null == doc)
         return;
 
-      ListViewHitTestInfo info = ((ListView)sender).HitTest(e.X, e.Y);
+      var info = ((ListView)sender).HitTest(e.X, e.Y);
       var item = info.Item;
       if (null != item)
         SetActiveLayout((uint)item.Tag);
     }
 
+    /// <summary>
+    /// OnListViewBeforeLabelEdit
+    /// </summary>
     private void OnListViewBeforeLabelEdit(object sender, LabelEditEventArgs e)
     {
     }
 
+    /// <summary>
+    /// OnListViewAfterLabelEdit
+    /// </summary>
     private void OnListViewAfterLabelEdit(object sender, LabelEditEventArgs e)
     {
       if (string.IsNullOrEmpty(e.Label))
@@ -347,30 +424,35 @@ namespace RealDrawings
             break;
           }
         }
-
       }
     }
 
+    /// <summary>
+    /// OnListViewSelectedIndexChanged
+    /// </summary>
     private void OnListViewSelectedIndexChanged(object sender, EventArgs e)
     {
       SetButtonsEnabled(m_list.SelectedItems.Count);
     }
 
+    /// <summary>
+    /// SetButtonsEnabled
+    /// </summary>
     private void SetButtonsEnabled(int selectedCount)
     {
-      if (0 == selectedCount)
+      if (selectedCount <= 0)
       {
         m_button_copy.Enabled = false;
         m_button_delete.Enabled = false;
         m_button_props.Enabled = false;
       }
-      else if (1 == selectedCount)
+      else if (selectedCount == 1)
       {
         m_button_copy.Enabled = true;
         m_button_delete.Enabled = true;
         m_button_props.Enabled = true;
       }
-      else
+      else if (selectedCount > 1)
       {
         m_button_copy.Enabled = false;
         m_button_delete.Enabled = true;
@@ -378,34 +460,35 @@ namespace RealDrawings
       }
     }
 
+    /// <summary>
+    /// OnListViewColumnClick
+    /// </summary>
     private void OnListViewColumnClick(object sender, ColumnClickEventArgs e)
     {
-      // Determine if clicked column is already the column that is being sorted.
       if (e.Column == m_item_sorter.SortColumn)
       {
-        // Reverse the current sort direction for this column.
-        if (m_item_sorter.Order == SortOrder.Ascending)
-        {
-          m_item_sorter.Order = SortOrder.Descending;
-        }
-        else
-        {
-          m_item_sorter.Order = SortOrder.Ascending;
-        }
+        m_item_sorter.Order = m_item_sorter.Order == SortOrder.Ascending
+          ? SortOrder.Descending
+          : SortOrder.Ascending;
       }
       else
       {
-        // Set the column number that is to be sorted; default to ascending.
+
         m_item_sorter.SortColumn = e.Column;
         m_item_sorter.Order = SortOrder.Ascending;
       }
 
-      // Perform the sort with these new sort options.
       m_list.Sort();
     }
 
+    /// <summary>
+    /// OnTextBoxTextChanged
+    /// </summary>
     private void OnTextBoxTextChanged(object sender, EventArgs e)
     {
+      if (m_current_event == LayoutEvent.Open)
+        return;
+
       var doc = RhinoDoc.ActiveDoc;
       var views = doc?.Views.GetPageViews();
       if (views == null || views.Length == 0)
@@ -446,8 +529,10 @@ namespace RealDrawings
     /// </summary>
     private void OnButtonNewClick(object sender, EventArgs e)
     {
+      m_current_event = LayoutEvent.New;
       RhinoApp.RunScript("_Layout", false);
       FillListView();
+      m_current_event = LayoutEvent.None;
     }
 
     /// <summary>
@@ -455,14 +540,16 @@ namespace RealDrawings
     /// </summary>
     private void OnButtonCopyClick(object sender, EventArgs e)
     {
-      ListViewItem selected = m_list.SelectedItems[0];
+      if (0 == m_list.SelectedItems.Count)
+        return;
+
+      var selected = m_list.SelectedItems[0];
       if (null != selected)
       {
         SetActiveLayout((uint)selected.Tag);
         RhinoApp.RunScript("_CopyLayout", false);
         FillListView();
       }
-
     }
 
     /// <summary>
@@ -486,7 +573,7 @@ namespace RealDrawings
       if (rc == ShowMessageResult.No)
         return;
 
-      var current_sn = ActiveLayout;
+      m_current_event = LayoutEvent.Delete;
 
       foreach (ListViewItem item in m_list.SelectedItems)
       {
@@ -497,7 +584,8 @@ namespace RealDrawings
       }
 
       FillListView();
-      SetActiveLayout(current_sn);
+
+      m_current_event = LayoutEvent.None;
     }
 
     /// <summary>
@@ -505,6 +593,9 @@ namespace RealDrawings
     /// </summary>
     private void OnButtonPropsClick(object sender, EventArgs e)
     {
+      if (0 == m_list.SelectedItems.Count)
+        return;
+
       ListViewItem selected = m_list.SelectedItems[0];
       if (null != selected)
       {
@@ -514,107 +605,220 @@ namespace RealDrawings
       }
     }
 
+    /// <summary>
+    /// OnButtonHelpClick
+    /// </summary>
+    private void OnButtonHelpClick(object sender, EventArgs e)
+    {
+      Process.Start("https://github.com/dalefugier/RealDrawings");
+    }
+
+    /// <summary>
+    /// SendMessage Win32 wrapper
+    /// </summary>
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     private static extern int SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)]string lParam);
     private const int EM_SETCUEBANNER = 0x1501;
 
+    /// <summary>
+    /// OnMenuOpening
+    /// </summary>
+    private void OnMenuOpening(object sender, System.ComponentModel.CancelEventArgs e)
+    {
+      var selected_count = m_list.SelectedItems.Count;
+      if (selected_count <= 0)
+      {
+        m_menu_active.Enabled = false;
+        m_menu_copy.Enabled = false;
+        m_menu_delete.Enabled = false;
+        m_menu_rename.Enabled = false;
+        m_button_copy.Enabled = false;
+        m_menu_properties.Enabled = false;
+      }
+      else if (selected_count == 1)
+      {
+        m_menu_active.Enabled = true;
+        m_menu_copy.Enabled = true;
+        m_menu_delete.Enabled = true;
+        m_menu_rename.Enabled = true;
+        m_button_copy.Enabled = true;
+        m_menu_properties.Enabled = true;
+      }
+      else if (selected_count > 1)
+      {
+        m_menu_active.Enabled = false;
+        m_menu_copy.Enabled = false;
+        m_menu_delete.Enabled = true;
+        m_menu_rename.Enabled = false;
+        m_button_copy.Enabled = false;
+        m_menu_properties.Enabled = false;
+      }
+    }
 
+    private void OnListViewMouseClick(object sender, MouseEventArgs e)
+    {
+      if (e.Button == MouseButtons.Right)
+      {
+        var pt = m_list.PointToScreen(e.Location);
+        m_menu.Show(pt);
+      }
+    }
+
+    private void OnMenuActiveClick(object sender, EventArgs e)
+    {
+      if (0 == m_list.SelectedItems.Count)
+        return;
+
+      var selected = m_list.SelectedItems[0];
+      if (null != selected)
+        SetActiveLayout((uint)selected.Tag);
+    }
+
+    private void OnMenuCopyClick(object sender, EventArgs e)
+    {
+      if (0 == m_list.SelectedItems.Count)
+        return;
+
+      var selected = m_list.SelectedItems[0];
+      if (null != selected)
+      {
+        SetActiveLayout((uint)selected.Tag);
+        RhinoApp.RunScript("_CopyLayout", false);
+        FillListView();
+      }
+    }
+
+    private void OnMenuDeleteClick(object sender, EventArgs e)
+    {
+      var count = m_list.SelectedItems.Count;
+      if (0 == count)
+        return;
+
+      var message = 1 == count
+        ? "Permanently deleted the selected layout?"
+        : "Permanently deleted the selected layouts?";
+
+      var title = 1 == count
+        ? "Delete Layout"
+        : "Delete Layouts";
+
+      var rc = Dialogs.ShowMessage(message, title, ShowMessageButton.YesNo, ShowMessageIcon.Warning);
+      if (rc == ShowMessageResult.No)
+        return;
+
+      m_current_event = LayoutEvent.Delete;
+
+      foreach (ListViewItem item in m_list.SelectedItems)
+      {
+        SetActiveLayout((uint)item.Tag);
+        RhinoApp.Wait();
+        RhinoApp.RunScript("_-CloseViewport _Yes", false);
+        RhinoApp.Wait();
+      }
+
+      FillListView();
+
+      m_current_event = LayoutEvent.None;
+
+    }
+
+    private void OnmMenuPropertiesClick(object sender, EventArgs e)
+    {
+      if (0 == m_list.SelectedItems.Count)
+        return;
+
+      var selected = m_list.SelectedItems[0];
+      if (null != selected)
+      {
+        SetActiveLayout((uint)selected.Tag);
+        RhinoApp.RunScript("_LayoutProperties", false);
+        FillListView();
+      }
+    }
+
+    private void OnMenuNewClick(object sender, EventArgs e)
+    {
+      m_current_event = LayoutEvent.New;
+      RhinoApp.RunScript("_Layout", false);
+      FillListView();
+      m_current_event = LayoutEvent.None;
+    }
+
+    private void OnMenuRenameClick(object sender, EventArgs e)
+    {
+      if (0 == m_list.SelectedItems.Count)
+        return;
+
+      var selected = m_list.SelectedItems[0];
+      selected?.BeginEdit();
+    }
   }
+
 
   public class ListViewItemSorter : IComparer
   {
     /// <summary>
-    /// Specifies the column to be sorted
-    /// </summary>
-    private int m_column_to_sort;
-    /// <summary>
-    /// Specifies the order in which to sort (i.e. 'Ascending').
-    /// </summary>
-    private SortOrder m_order_of_sort;
-    /// <summary>
-    /// Case insensitive comparer object
-    /// </summary>
-    private CaseInsensitiveComparer m_object_compare;
-
-    /// <summary>
-    /// Class constructor.  Initializes various elements
+    /// Public constructor
     /// </summary>
     public ListViewItemSorter()
     {
-      // Initialize the column to '0'
-      m_column_to_sort = 0;
-
-      // Initialize the sort order to 'none'
-      m_order_of_sort = SortOrder.None;
-
-      // Initialize the CaseInsensitiveComparer object
-      m_object_compare = new CaseInsensitiveComparer();
+      SortColumn = 0;
+      Order = SortOrder.None;
     }
 
     /// <summary>
-    /// This method is inherited from the IComparer interface.  It compares the two objects passed using a case insensitive comparison.
+    /// IComparer.Compare definition
     /// </summary>
-    /// <param name="x">First object to be compared</param>
-    /// <param name="y">Second object to be compared</param>
-    /// <returns>The result of the comparison. "0" if equal, negative if 'x' is less than 'y' and positive if 'x' is greater than 'y'</returns>
     public int Compare(object x, object y)
     {
-      int compareResult;
-      ListViewItem listviewX, listviewY;
+      var item_x = (ListViewItem)x;
+      var item_y = (ListViewItem)y;
 
-      // Cast the objects to be compared to ListViewItem objects
-      listviewX = (ListViewItem)x;
-      listviewY = (ListViewItem)y;
-
-      // Compare the two items
-      compareResult = m_object_compare.Compare(listviewX.SubItems[m_column_to_sort].Text, listviewY.SubItems[m_column_to_sort].Text);
-
-      // Calculate correct return value based on object comparison
-      if (m_order_of_sort == SortOrder.Ascending)
-      {
-        // Ascending sort is selected, return normal result of compare operation
-        return compareResult;
-      }
-      else if (m_order_of_sort == SortOrder.Descending)
-      {
-        // Descending sort is selected, return negative result of compare operation
-        return (-compareResult);
-      }
+      int rc;
+      if (null == item_x && null == item_y)
+        rc = 0;
+      else if (null == item_y)
+        rc = -1;
+      else if (null == item_x)
+        rc = 1;
       else
-      {
-        // Return '0' to indicate they are equal
-        return 0;
-      }
+        rc = StrCmpLogicalW(item_x.SubItems[SortColumn].Text, item_y.SubItems[SortColumn].Text);
+
+      if (Order == SortOrder.Ascending)
+        return rc;
+      if (Order == SortOrder.Descending)
+        return -rc;
+
+      return 0;
     }
 
     /// <summary>
     /// Gets or sets the number of the column to which to apply the sorting operation (Defaults to '0').
     /// </summary>
-    public int SortColumn
-    {
-      set
-      {
-        m_column_to_sort = value;
-      }
-      get
-      {
-        return m_column_to_sort;
-      }
-    }
+    public int SortColumn { set; get; }
 
     /// <summary>
     /// Gets or sets the order of sorting to apply (for example, 'Ascending' or 'Descending').
     /// </summary>
-    public SortOrder Order
+    public SortOrder Order { set; get; }
+
+    /// <summary>
+    /// StrCmpLogicalW Win32 wrapper
+    /// </summary>
+    [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+    private static extern int StrCmpLogicalW(string psz1, string psz2);
+  }
+
+  /// <summary>
+  /// Fancy extension methods
+  /// </summary>
+  public static class ControlExtensions
+  {
+    public static void DoubleBuffered(this Control control, bool enable)
     {
-      set
-      {
-        m_order_of_sort = value;
-      }
-      get
-      {
-        return m_order_of_sort;
-      }
+      var info = control.GetType().GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
+      if (null != info)
+        info.SetValue(control, enable, null);
     }
   }
 }
