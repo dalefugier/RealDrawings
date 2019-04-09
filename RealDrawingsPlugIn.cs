@@ -23,6 +23,7 @@ namespace RealDrawings
       var type = typeof(LayoutsPanel);
       var icon = DrawingUtilities.IconFromResource("RealDrawings.Resources.Panel.ico", GetType().Assembly);
       Panels.RegisterPanel(this, type, "Layouts",icon, PanelType.PerDoc);
+
       return LoadReturnCode.Success;
     }
   }
