@@ -75,7 +75,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\plugin-utility.ico" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

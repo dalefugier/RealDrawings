@@ -39,7 +39,7 @@
       this.m_button_new = new System.Windows.Forms.ToolStripButton();
       this.m_button_copy = new System.Windows.Forms.ToolStripButton();
       this.m_button_delete = new System.Windows.Forms.ToolStripButton();
-      this.m_button_props = new System.Windows.Forms.ToolStripButton();
+      this.m_button_properties = new System.Windows.Forms.ToolStripButton();
       this.m_button_help = new System.Windows.Forms.ToolStripButton();
       this.m_menu = new System.Windows.Forms.ContextMenuStrip(this.components);
       this.m_menu_active = new System.Windows.Forms.ToolStripMenuItem();
@@ -74,7 +74,6 @@
       this.m_list.UseCompatibleStateImageBehavior = false;
       this.m_list.View = System.Windows.Forms.View.Details;
       this.m_list.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.OnListViewAfterLabelEdit);
-      this.m_list.BeforeLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.OnListViewBeforeLabelEdit);
       this.m_list.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.OnListViewColumnClick);
       this.m_list.SelectedIndexChanged += new System.EventHandler(this.OnListViewSelectedIndexChanged);
       this.m_list.MouseClick += new System.Windows.Forms.MouseEventHandler(this.OnListViewMouseClick);
@@ -112,7 +111,7 @@
             this.m_button_new,
             this.m_button_copy,
             this.m_button_delete,
-            this.m_button_props,
+            this.m_button_properties,
             this.m_button_help});
       this.m_toolstrip.Location = new System.Drawing.Point(0, 0);
       this.m_toolstrip.Name = "m_toolstrip";
@@ -150,15 +149,15 @@
       this.m_button_delete.ToolTipText = "Delete";
       this.m_button_delete.Click += new System.EventHandler(this.OnButtonDeleteClick);
       // 
-      // m_button_props
+      // m_button_properties
       // 
-      this.m_button_props.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-      this.m_button_props.Image = ((System.Drawing.Image)(resources.GetObject("m_button_props.Image")));
-      this.m_button_props.ImageTransparentColor = System.Drawing.Color.Magenta;
-      this.m_button_props.Name = "m_button_props";
-      this.m_button_props.Size = new System.Drawing.Size(23, 22);
-      this.m_button_props.ToolTipText = "Properties...";
-      this.m_button_props.Click += new System.EventHandler(this.OnButtonPropsClick);
+      this.m_button_properties.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+      this.m_button_properties.Image = ((System.Drawing.Image)(resources.GetObject("m_button_properties.Image")));
+      this.m_button_properties.ImageTransparentColor = System.Drawing.Color.Magenta;
+      this.m_button_properties.Name = "m_button_properties";
+      this.m_button_properties.Size = new System.Drawing.Size(23, 22);
+      this.m_button_properties.ToolTipText = "Properties...";
+      this.m_button_properties.Click += new System.EventHandler(this.OnButtonPropertiesClick);
       // 
       // m_button_help
       // 
@@ -270,7 +269,7 @@
     private System.Windows.Forms.ToolStripButton m_button_new;
     private System.Windows.Forms.ToolStripButton m_button_copy;
     private System.Windows.Forms.ToolStripButton m_button_delete;
-    private System.Windows.Forms.ToolStripButton m_button_props;
+    private System.Windows.Forms.ToolStripButton m_button_properties;
     private System.Windows.Forms.ToolStripButton m_button_help;
     private System.Windows.Forms.ContextMenuStrip m_menu;
     private System.Windows.Forms.ToolStripMenuItem m_menu_active;
