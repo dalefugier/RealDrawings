@@ -25,6 +25,7 @@ namespace RealDrawings
     private readonly Font m_font_regular;
     private readonly Font m_font_bold;
     private bool m_events_hooked;
+    private string m_filter;
 
     private enum LayoutEvent
     {
@@ -70,7 +71,6 @@ namespace RealDrawings
       image_list.Images.Add("0", image);
       m_list.SmallImageList = image_list;
       
-
       // ListView item sorter
       m_item_sorter = new ListViewItemSorter();
       m_list.ListViewItemSorter = m_item_sorter;
@@ -105,7 +105,7 @@ namespace RealDrawings
       foreach (ColumnHeader column in m_list.Columns)
         column_sizes.Add(column.Width);
 
-      var seleccted_index = -1;
+      var selected_index = -1;
 
       // Here we go
       m_list.BeginUpdate();
@@ -119,16 +119,32 @@ namespace RealDrawings
         // Active layout's runtime serial number (can be 0)
         var sn = ActiveLayoutSerialNumber;
 
-        // Process all document layouts
+        // Get the document page views
         var page_views = doc.Views.GetPageViews();
-        foreach (var view in page_views)
+
+        if (string.IsNullOrEmpty(m_filter))
         {
-          var item = PageViewItem(view, view.RuntimeSerialNumber == sn);
-          if (null != item)
+          // Process all document layouts
+          foreach (var view in page_views)
           {
+            var item = PageViewItem(view, view.RuntimeSerialNumber == sn);
+            if (null != item)
+            {
+              var new_item = m_list.Items.Add(item);
+              if (new_item.Selected)
+                selected_index = new_item.Index;
+            }
+          }
+        }
+        else
+        {
+          // Find the page views that contain the text in the name
+          foreach (var view in page_views.Where(v => v.PageName.ToLower().Contains(m_filter.ToLower())))
+          {
+            var item = PageViewItem(view, view.RuntimeSerialNumber == sn);
             var new_item = m_list.Items.Add(item);
             if (new_item.Selected)
-              seleccted_index = new_item.Index;
+              selected_index = new_item.Index;
           }
         }
       }
@@ -140,8 +156,8 @@ namespace RealDrawings
 
       m_list.Sort();
 
-      if (seleccted_index >= 0)
-        m_list.EnsureVisible(seleccted_index);
+      if (selected_index >= 0)
+        m_list.EnsureVisible(selected_index);
 
       m_list.EndUpdate();
     }
@@ -527,31 +543,23 @@ namespace RealDrawings
     /// </summary>
     private void OnListViewAfterLabelEdit(object sender, LabelEditEventArgs e)
     {
+      // Always cancel. Item will be refreshed when the page view is renamed
+      e.CancelEdit = true;
+
       if (string.IsNullOrEmpty(e.Label))
-      {
-        e.CancelEdit = true;
         return;
-      }
 
       var label = e.Label.Trim();
       if (string.IsNullOrEmpty(label))
-      {
-        e.CancelEdit = true;
         return;
-      }
 
+      // User layer's name validator
       if (!Rhino.DocObjects.Layer.IsValidName(label))
-      {
-        e.CancelEdit = true;
         return;
-      }
 
       var doc = RhinoDoc.ActiveDoc;
       if (null == doc)
-      {
-        e.CancelEdit = true;
         return;
-      }
 
       var index = e.Item;
       var item = m_list.Items[index];
@@ -626,34 +634,8 @@ namespace RealDrawings
       if (m_current_event != LayoutEvent.None)
         return;
 
-      var doc = RhinoDoc.ActiveDoc;
-      var views = doc?.Views.GetPageViews();
-      if (views == null || views.Length == 0)
-        return;
-
-      var text = m_text.Text.Trim();
-      if (string.IsNullOrEmpty(text))
-      {
-        FillListView();
-        return;
-      }
-
-      m_list.BeginUpdate();
-
-      m_list.Items.Clear();
-
-      // Active layout's runtime serial number (can be 0)
-      var sn = ActiveLayoutSerialNumber;
-
-      // Find the page views that contain the text in the name
-      foreach (var view in views.Where(v => v.PageName.ToLower().Contains(text.ToLower())))
-      {
-        var item = PageViewItem(view, view.RuntimeSerialNumber == sn);
-        if (null != item)
-          m_list.Items.Add(item);
-      }
-
-      m_list.EndUpdate();
+      m_filter = m_text.Text.Trim();
+      FillListView();
     }
 
     #endregion // TextBox event handlers
