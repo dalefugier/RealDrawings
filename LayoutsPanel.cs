@@ -55,7 +55,9 @@ namespace RealDrawings
     public LayoutsPanel()
     {
       InitializeComponent();
-      m_list.DoubleBuffered(true);
+
+      // Set the ListView to double-buffer
+      m_list.SetDoubleBuffered(true);
 
       // Toolbar icons
       var icon_size = SystemInformation.SmallIconSize.Width;
@@ -605,6 +607,7 @@ namespace RealDrawings
       }
 
       m_list.Sort();
+      m_list.SetSortIcon(m_item_sorter.Column, m_item_sorter.Order);
     }
 
     /// <summary>
@@ -780,10 +783,10 @@ namespace RealDrawings
 
 
     /// <summary>
-    /// SendMessage Win32 wrapper
+    /// Win32 SendMessage wrapper
     /// </summary>
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    private static extern int SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)]string lParam);
+    private static extern int SendMessage(IntPtr hWnd, uint msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)]string lParam);
     private const int EM_SETCUEBANNER = 0x1501;
   }
 
@@ -807,23 +810,23 @@ namespace RealDrawings
     /// </summary>
     public int Compare(object x, object y)
     {
-      var item_x = (ListViewItem)x;
-      var item_y = (ListViewItem)y;
-
-      int rc;
-      if (null == item_x && null == item_y)
-        rc = 0;
-      else if (null == item_y)
-        rc = -1;
-      else if (null == item_x)
-        rc = 1;
-      else
-        rc = StrCmpLogicalW(item_x.SubItems[Column].Text, item_y.SubItems[Column].Text);
-
-      if (Order == SortOrder.Ascending)
-        return rc;
-      if (Order == SortOrder.Descending)
-        return -rc;
+      try
+      {
+        var item_x = (ListViewItem)x;
+        var item_y = (ListViewItem)y;
+        if (null != item_x && null != item_y)
+        {
+          var compare = StrCmpLogicalW(item_x.SubItems[Column].Text, item_y.SubItems[Column].Text);
+          if (Order == SortOrder.Ascending)
+            return compare;
+          if (Order == SortOrder.Descending)
+            return -compare;
+        }
+      }
+      catch
+      {
+        return 0;
+      }
 
       return 0;
     }
@@ -849,9 +852,116 @@ namespace RealDrawings
   /// <summary>
   /// Fancy extension methods
   /// </summary>
-  public static class ControlExtensions
+  internal static class ListViewExtensions
   {
-    public static void DoubleBuffered(this Control control, bool enable)
+    /// <summary>
+    /// Win32 structore that contains information about a column in report view
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LVCOLUMN
+    {
+      public int mask;
+      public int cx;
+      [MarshalAs(UnmanagedType.LPTStr)]
+      public string pszText;
+      public IntPtr hbm;
+      public int cchTextMax;
+      public int fmt;
+      public int iSubItem;
+      public int iImage;
+      public int iOrder;
+    }
+
+    /// <summary>
+    /// Win32 ListView column header constants
+    /// </summary>
+    const int HDI_WIDTH = 0x0001;
+    const int HDI_HEIGHT = HDI_WIDTH;
+    const int HDI_TEXT = 0x0002;
+    const int HDI_FORMAT = 0x0004;
+    const int HDI_LPARAM = 0x0008;
+    const int HDI_BITMAP = 0x0010;
+    const int HDI_IMAGE = 0x0020;
+    const int HDI_DI_SETITEM = 0x0040;
+    const int HDI_ORDER = 0x0080;
+    const int HDI_FILTER = 0x0100;
+
+    const int HDF_LEFT = 0x0000;
+    const int HDF_RIGHT = 0x0001;
+    const int HDF_CENTER = 0x0002;
+    const int HDF_JUSTIFYMASK = 0x0003;
+    const int HDF_RTLREADING = 0x0004;
+    const int HDF_OWNERDRAW = 0x8000;
+    const int HDF_STRING = 0x4000;
+    const int HDF_BITMAP = 0x2000;
+    const int HDF_BITMAP_ON_RIGHT = 0x1000;
+    const int HDF_IMAGE = 0x0800;
+    const int HDF_SORTUP = 0x0400;
+    const int HDF_SORTDOWN = 0x0200;
+
+    const int LVM_FIRST = 0x1000;         // List messages
+    const int LVM_GETHEADER = LVM_FIRST + 31;
+    const int HDM_FIRST = 0x1200;         // Header messages
+    const int HDM_SETIMAGELIST = HDM_FIRST + 8;
+    const int HDM_GETIMAGELIST = HDM_FIRST + 9;
+    const int HDM_GETITEM = HDM_FIRST + 11;
+    const int HDM_SETITEM = HDM_FIRST + 12;
+
+    /// <summary>
+    /// Win32 SendMessage wrapper
+    /// </summary>
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    /// <summary>
+    /// Win32 SendMessage wrapper for LVCOLUMN
+    /// </summary>
+    [DllImport("user32.dll", EntryPoint = "SendMessage")]
+    private static extern IntPtr SendMessageLVCOLUMN(IntPtr hWnd, uint msg, IntPtr wParam, ref LVCOLUMN lParam);
+
+    /// <summary>
+    /// Sets the ListView column header sort icons
+    /// </summary>
+    public static void SetSortIcon(this ListView list, int columnIndex, SortOrder order)
+    {
+      var ptr_header = SendMessage(list.Handle, LVM_GETHEADER, IntPtr.Zero, IntPtr.Zero);
+      if (ptr_header != IntPtr.Zero)
+      {
+        for (var index = 0; index <= list.Columns.Count - 1; index++)
+        {
+          var ptr_index = new IntPtr(index);
+          var column = new LVCOLUMN {mask = HDI_FORMAT};
+
+          SendMessageLVCOLUMN(ptr_header, HDM_GETITEM, ptr_index, ref column);
+
+          if (order != SortOrder.None && index == columnIndex)
+          {
+            if (order == SortOrder.Ascending)
+            {
+              column.fmt &= ~HDF_SORTDOWN;
+              column.fmt |= HDF_SORTUP;
+            }
+            else if (order == SortOrder.Descending)
+            {
+              column.fmt &= ~HDF_SORTUP;
+              column.fmt |= HDF_SORTDOWN;
+            }
+            column.fmt |= HDF_LEFT | HDF_BITMAP_ON_RIGHT;
+          }
+          else
+          {
+            column.fmt &= ~HDF_SORTDOWN & ~HDF_SORTUP & ~HDF_BITMAP_ON_RIGHT;
+          }
+
+          SendMessageLVCOLUMN(ptr_header, HDM_SETITEM, ptr_index, ref column);
+        }
+      }
+    }
+
+    /// <summary>
+    /// Sets the protected Control.DoubleBuffered proprety
+    /// </summary>
+    public static void SetDoubleBuffered(this Control control, bool enable)
     {
       var info = control.GetType().GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
       if (null != info)
