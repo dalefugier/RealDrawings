@@ -60,17 +60,17 @@ namespace RealDrawings
       m_list.SetDoubleBuffered(true);
 
       // Toolbar icons
-      var icon_size = SystemInformation.SmallIconSize.Width;
-      m_button_new.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.New.ico", icon_size);
-      m_button_copy.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Copy.ico", icon_size);
-      m_button_delete.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Delete.ico", icon_size);
-      m_button_properties.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Props.ico", icon_size);
-      m_button_help.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Help.ico", icon_size);
+      var image_size = SystemInformation.SmallIconSize.Width;
+      m_button_new.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.New.ico", image_size);
+      m_button_copy.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Copy.ico", image_size);
+      m_button_delete.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Delete.ico", image_size);
+      m_button_properties.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Props.ico", image_size);
+      m_button_help.Image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Help.ico", image_size);
 
       // ListView image
-      var image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Panel.ico", icon_size);
-      var image_list = new ImageList();
-      image_list.Images.Add("0", image);
+      var image = DrawingUtilities.LoadBitmapWithScaleDown("RealDrawings.Resources.Panel.ico", image_size);
+      var image_list = new ImageList { ImageSize = new Size(image_size, image_size) };
+      image_list.Images.Add(image);
       m_list.SmallImageList = image_list;
       
       // ListView item sorter
