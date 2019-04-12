@@ -30,17 +30,18 @@
     {
       this.components = new System.ComponentModel.Container();
       System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LayoutsPanel));
-      this.m_list = new System.Windows.Forms.ListView();
-      this.m_col_name = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-      this.m_col_size = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-      this.m_col_details = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-      this.m_text = new System.Windows.Forms.TextBox();
+      this.m_table = new System.Windows.Forms.TableLayoutPanel();
       this.m_toolstrip = new System.Windows.Forms.ToolStrip();
       this.m_button_new = new System.Windows.Forms.ToolStripButton();
       this.m_button_copy = new System.Windows.Forms.ToolStripButton();
       this.m_button_delete = new System.Windows.Forms.ToolStripButton();
       this.m_button_properties = new System.Windows.Forms.ToolStripButton();
       this.m_button_help = new System.Windows.Forms.ToolStripButton();
+      this.m_text = new System.Windows.Forms.TextBox();
+      this.m_list = new System.Windows.Forms.ListView();
+      this.m_col_name = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+      this.m_col_size = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+      this.m_col_details = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
       this.m_menu = new System.Windows.Forms.ContextMenuStrip(this.components);
       this.m_menu_active = new System.Windows.Forms.ToolStripMenuItem();
       this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -51,61 +52,34 @@
       this.m_menu_properties = new System.Windows.Forms.ToolStripMenuItem();
       this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
       this.m_menu_new = new System.Windows.Forms.ToolStripMenuItem();
+      this.m_table.SuspendLayout();
       this.m_toolstrip.SuspendLayout();
       this.m_menu.SuspendLayout();
       this.SuspendLayout();
       // 
-      // m_list
+      // m_table
       // 
-      this.m_list.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-      this.m_list.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.m_col_name,
-            this.m_col_size,
-            this.m_col_details});
-      this.m_list.FullRowSelect = true;
-      this.m_list.HideSelection = false;
-      this.m_list.LabelEdit = true;
-      this.m_list.Location = new System.Drawing.Point(4, 54);
-      this.m_list.Name = "m_list";
-      this.m_list.Size = new System.Drawing.Size(203, 229);
-      this.m_list.TabIndex = 1;
-      this.m_list.UseCompatibleStateImageBehavior = false;
-      this.m_list.View = System.Windows.Forms.View.Details;
-      this.m_list.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.OnListViewAfterLabelEdit);
-      this.m_list.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.OnListViewColumnClick);
-      this.m_list.SelectedIndexChanged += new System.EventHandler(this.OnListViewSelectedIndexChanged);
-      this.m_list.MouseClick += new System.Windows.Forms.MouseEventHandler(this.OnListViewMouseClick);
-      this.m_list.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.OnListViewMouseDoubleClick);
-      // 
-      // m_col_name
-      // 
-      this.m_col_name.Text = "Name";
-      this.m_col_name.Width = 100;
-      // 
-      // m_col_size
-      // 
-      this.m_col_size.Text = "Size";
-      this.m_col_size.Width = 100;
-      // 
-      // m_col_details
-      // 
-      this.m_col_details.Text = "Details";
-      this.m_col_details.Width = 25;
-      // 
-      // m_text
-      // 
-      this.m_text.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-      this.m_text.Location = new System.Drawing.Point(3, 28);
-      this.m_text.Name = "m_text";
-      this.m_text.Size = new System.Drawing.Size(203, 20);
-      this.m_text.TabIndex = 7;
-      this.m_text.TextChanged += new System.EventHandler(this.OnTextBoxTextChanged);
+      this.m_table.ColumnCount = 1;
+      this.m_table.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+      this.m_table.Controls.Add(this.m_toolstrip, 0, 0);
+      this.m_table.Controls.Add(this.m_text, 0, 1);
+      this.m_table.Controls.Add(this.m_list, 0, 2);
+      this.m_table.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.m_table.Location = new System.Drawing.Point(0, 0);
+      this.m_table.Name = "m_table";
+      this.m_table.RowCount = 3;
+      this.m_table.RowStyles.Add(new System.Windows.Forms.RowStyle());
+      this.m_table.RowStyles.Add(new System.Windows.Forms.RowStyle());
+      this.m_table.RowStyles.Add(new System.Windows.Forms.RowStyle());
+      this.m_table.Size = new System.Drawing.Size(384, 486);
+      this.m_table.TabIndex = 0;
       // 
       // m_toolstrip
       // 
+      this.m_toolstrip.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+      this.m_toolstrip.Dock = System.Windows.Forms.DockStyle.None;
       this.m_toolstrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
       this.m_toolstrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.m_button_new,
@@ -115,9 +89,8 @@
             this.m_button_help});
       this.m_toolstrip.Location = new System.Drawing.Point(0, 0);
       this.m_toolstrip.Name = "m_toolstrip";
-      this.m_toolstrip.Size = new System.Drawing.Size(210, 25);
-      this.m_toolstrip.TabIndex = 8;
-      this.m_toolstrip.Text = "toolStrip1";
+      this.m_toolstrip.Size = new System.Drawing.Size(384, 25);
+      this.m_toolstrip.TabIndex = 0;
       // 
       // m_button_new
       // 
@@ -168,6 +141,57 @@
       this.m_button_help.Size = new System.Drawing.Size(23, 22);
       this.m_button_help.ToolTipText = "Help";
       this.m_button_help.Click += new System.EventHandler(this.OnButtonHelpClick);
+      // 
+      // m_text
+      // 
+      this.m_text.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+      this.m_text.Location = new System.Drawing.Point(3, 28);
+      this.m_text.Name = "m_text";
+      this.m_text.Size = new System.Drawing.Size(378, 20);
+      this.m_text.TabIndex = 7;
+      this.m_text.TabStop = false;
+      this.m_text.TextChanged += new System.EventHandler(this.OnTextBoxTextChanged);
+      // 
+      // m_list
+      // 
+      this.m_list.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+      this.m_list.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.m_col_name,
+            this.m_col_size,
+            this.m_col_details});
+      this.m_list.FullRowSelect = true;
+      this.m_list.HideSelection = false;
+      this.m_list.LabelEdit = true;
+      this.m_list.Location = new System.Drawing.Point(3, 54);
+      this.m_list.Name = "m_list";
+      this.m_list.Size = new System.Drawing.Size(378, 454);
+      this.m_list.TabIndex = 1;
+      this.m_list.TabStop = false;
+      this.m_list.UseCompatibleStateImageBehavior = false;
+      this.m_list.View = System.Windows.Forms.View.Details;
+      this.m_list.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.OnListViewAfterLabelEdit);
+      this.m_list.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.OnListViewColumnClick);
+      this.m_list.SelectedIndexChanged += new System.EventHandler(this.OnListViewSelectedIndexChanged);
+      this.m_list.MouseClick += new System.Windows.Forms.MouseEventHandler(this.OnListViewMouseClick);
+      this.m_list.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.OnListViewMouseDoubleClick);
+      // 
+      // m_col_name
+      // 
+      this.m_col_name.Text = "Name";
+      this.m_col_name.Width = 100;
+      // 
+      // m_col_size
+      // 
+      this.m_col_size.Text = "Size";
+      this.m_col_size.Width = 100;
+      // 
+      // m_col_details
+      // 
+      this.m_col_details.Text = "Details";
+      this.m_col_details.Width = 25;
       // 
       // m_menu
       // 
@@ -246,20 +270,20 @@
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.Controls.Add(this.m_toolstrip);
-      this.Controls.Add(this.m_text);
-      this.Controls.Add(this.m_list);
+      this.Controls.Add(this.m_table);
       this.Name = "LayoutsPanel";
-      this.Size = new System.Drawing.Size(210, 286);
+      this.Size = new System.Drawing.Size(384, 486);
+      this.m_table.ResumeLayout(false);
+      this.m_table.PerformLayout();
       this.m_toolstrip.ResumeLayout(false);
       this.m_toolstrip.PerformLayout();
       this.m_menu.ResumeLayout(false);
       this.ResumeLayout(false);
-      this.PerformLayout();
 
     }
 
     #endregion
+    private System.Windows.Forms.TableLayoutPanel m_table;
     private System.Windows.Forms.ListView m_list;
     private System.Windows.Forms.ColumnHeader m_col_name;
     private System.Windows.Forms.ColumnHeader m_col_size;
